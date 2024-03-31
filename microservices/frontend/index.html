@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <!-- Include Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center">Login</h1>
+        <form id="loginForm">
+            <div class="mb-3">
+                <label for="studentId" class="form-label">Student ID:</label>
+                <input type="text" class="form-control" id="studentId" name="studentId" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="password" class="form-label">Password:</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Login</button>
+        </form>
+    </div>
+    <!-- Include Bootstrap 5 JS and Popper.js -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(event) {
+            event.preventDefault(); // Prevent form submission
+            
+            const studentId = document.getElementById('studentId').value;
+            const password = document.getElementById('password').value;
+
+            // Make POST request to login endpoint
+            const response = await fetch('http://localhost:8000/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    studentId: studentId,
+                    password: password
+                })
+            });
+
+            const data = await response.json();
+            console.log(data);
+            
+            if (response.ok) {
+                // Login successful, store JWT token in local storage
+                localStorage.setItem('access_token', data.access_token);
+                localStorage.setItem('login_student_id', data.student_id);
+                alert('Login successful!');
+                // Redirect to another page if needed
+                window.location.href = 'payment.html';
+            } else {
+                // Login failed, display error message
+                alert(data.msg);
+            }
+        });
+    </script>
+</body>
+</html>

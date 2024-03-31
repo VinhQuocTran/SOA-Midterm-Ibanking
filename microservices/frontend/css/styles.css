@@ -1,0 +1,8 @@
+.blue-border {
+    border: 1px solid blue;
+}
+
+.nav-item.active .nav-link {
+    color: #fff; /* This is the font color */
+    background-color: blue; /* This is the background color */
+}

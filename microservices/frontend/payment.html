@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
+    <title>Payment</title>
+</head>
+<body>
+    
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand navbar-light bg-light">
+        <a class="navbar-brand" href="#">Payment System</a>
+        <div class="navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item active">
+                <a class="nav-link" href="payment.html">Make Payment</a>
+                </li>
+                <li class="nav-item">
+                <a class="nav-link" href="#">Transaction History</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Form -->
+    <div class="container mt-4">
+        <form id="paymentForm">
+            <!-- Information of Payer -->
+            <fieldset disabled>
+                <legend>Information of Payer</legend>
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" class="form-control" placeholder="Name">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" class="form-control" placeholder="Email">
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="tel" id="phone" class="form-control" placeholder="Phone Number">
+                </div>
+                <br>
+                <br>
+            </fieldset>
+
+            <!-- Information of Tuition Fee -->
+            <fieldset>
+                <legend>Information of Tuition Fee</legend>
+                <div class="form-group">
+                    <label for="id">Student ID</label>
+                    <input type="text" id="id" class="form-control" placeholder="ID">
+                </div>
+                <div class="form-group">
+                    <label for="studentName">Student Name</label>
+                    <input type="text" id="studentName" class="form-control" placeholder="Student Name" disabled>
+                </div>
+                <div class="form-group">
+                    <label for="tuitionFee">Tuition Fee</label>
+                    <input type="number" id="tuitionFee" class="form-control" placeholder="Tuition Fee" disabled>
+                </div>
+                <br>
+                <br>
+            </fieldset>
+
+            <!-- Payer Balance -->
+            <fieldset>
+                <legend>Payer Balance</legend>
+                <div class="form-group">
+                    <label for="balance">Your Balance</label>
+                    <input type="number" id="balance" class="form-control" placeholder="Balance" disabled>
+                </div>
+                <div class="form-group">
+                    <label for="tuitionFeeBalance">Tuition Fee</label>
+                    <input type="number" id="tuitionFeeBalance" class="form-control" placeholder="Tuition Fee" disabled>
+                </div>
+                <br>
+                <br>
+            </fieldset>
+
+            <!-- Submit Button -->
+            <button type="button" id="payButton" class="btn btn-primary">Pay Tuition Fee</button>
+        </form>
+
+        <!-- OTP Modal -->
+        <div class="modal fade" id="otpModal" tabindex="-1" role="dialog" aria-labelledby="otpModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="otpModalLabel">OTP Verification</h5>
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                  </button>
+                </div>
+                <div class="modal-body">
+                  <input type="text" id="otp" placeholder="Enter OTP">
+                  <button id="sendOtpButton">Send OTP</button>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                  <button type="button" class="btn btn-primary" id="verifyOtpButton">Verify OTP</button>
+                </div>
+              </div>
+            </div>
+          </div>
+    </div>
+
+    
+
+    <script>
+        $(document).ready(function() {
+
+            // Get user information
+            $.ajax({
+                url: 'http://localhost:8000/api/users/myself',
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token')  // Include the JWT token in the request
+                },
+                success: function(data) {
+                    // Populate the page with the returned data
+                    $('#name').val(data.username);
+                    $('#balance').val(data.balance);
+                },
+                error: function() {
+                    alert('Failed to load user information');
+                }
+            });
+            
+            // Get student information by id
+            $('#id').focusout(function() {
+                var studentId = $(this).val();
+
+                $.ajax({
+                    url: 'http://localhost:8000/api/users/' + studentId,
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')  // Include the JWT token in the request
+                    },
+                    success: function(data) {
+                        // Populate the form fields with the returned data
+                        $('#studentName').val(data.username);
+                        
+
+                        $.ajax({
+                            url: 'http://localhost:8001/api/latest_tuition_fees/' + studentId,
+                            method: 'GET',
+                            headers: {
+                                'Authorization': 'Bearer ' + localStorage.getItem('access_token')  // Include the JWT token in the request
+                            },
+                            success: function(data) {
+                                // Populate the tuition fee field with the returned data
+                                $('#tuitionFee').val(data.total_fee);
+                                $('#tuitionFeeBalance').val(data.total_fee);
+                            },
+                            error: function() {
+                                alert('Failed to load user or tuition fee information');
+                                $('#id').val('');
+                                $('#studentName').val('');
+                                $('#tuitionFee').val('');
+                                $('#tuitionFeeBalance').val('');
+                            }
+                        });
+                        
+                    }
+                });
+            });
+
+
+            // Send OTP
+            $('#payButton').click(function(event) {
+                event.preventDefault();
+                $('#otpModal').modal('show');
+            });
+
+            // Verify OTP
+            $('#sendOtpButton').click(function() {
+            var otpUrl = 'http://localhost:8000/api/send_otp';
+            $.ajax({
+                    url: otpUrl,
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    },
+                    success: function(data) {
+                        alert('OTP sent');
+                    },
+                    error: function() {
+                        alert('Failed to send OTP');
+                    }
+                });
+            });
+
+
+            
+            // Open this for payment function
+            // Confirm and submit payment
+            // $('#payButton').click(function(event) {
+            // event.preventDefault();  // Prevent the default form submission
+
+            // var confirmResult = confirm("Are you sure you want to pay the tuition fee?");
+            // if (confirmResult) {
+            //     var payeeId = $('#id').val();  // Replace '#id' with the actual ID of your "Information of Tuition Fee" field
+            //     var payerId = localStorage.getItem('login_student_id');
+
+            //     $.ajax({
+            //         url: 'http://localhost:8001/api/latest_tuition_fees/' + payeeId,
+            //         method: 'POST',
+            //         headers: {
+            //             'Authorization': 'Bearer ' + localStorage.getItem('access_token')  // Include the JWT token in the request
+            //         },
+            //         data: {
+            //             payeeId: payeeId,  // Pass the student ID in the data of the AJAX call
+            //             payerId:payerId
+            //         },
+            //         success: function(data) {
+            //             alert('Payment successful');
+            //         },
+            //         error: function() {
+            //             alert('Payment failed');
+            //         }
+            //     });
+            //     }
+            // });
+
+        });
+    </script>
+
+</body>
+</html>
