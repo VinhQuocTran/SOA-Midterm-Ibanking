@@ -97,50 +97,70 @@
             <!-- Submit Button -->
             <button type="button" id="payButton" class="btn btn-primary">Pay Tuition Fee</button>
         </form>
+    </div>
 
 
-        <!-- Confirmation Modal -->
-        <div class="modal fade" id="confirmModal" tabindex="-1" role="dialog" aria-labelledby="confirmModalLabel" aria-hidden="true">
-            <div class="modal-dialog" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="confirmModalLabel">Confirmation</h5>
-                        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        Are you sure you want to pay?
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
-                        <button type="button" class="btn btn-primary" id="confirmPayButton">Yes</button>
-                    </div>
+    <!-- Confirmation Modal -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" role="dialog" aria-labelledby="confirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmModalLabel">Confirmation</h5>
+                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
-            </div>
-        </div>       
-
-        <!-- OTP Modal -->
-        <div class="modal fade" id="otpModal" tabindex="-1" role="dialog" aria-labelledby="otpModalLabel" aria-hidden="true">
-            <div class="modal-dialog" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="otpModalLabel">OTP Verification</h5>
-                        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <input type="text" id="otpTextBox" placeholder="Enter OTP">
-                        <button id="sendOtpButton" class="btn btn-primary">Send OTP</button>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="button" class="btn btn-primary" id="verifyOtpButton">Verify OTP</button>
-                    </div>
+                <div class="modal-body">
+                    Are you sure you want to pay?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
+                    <button type="button" class="btn btn-primary" id="confirmPayButton">Yes</button>
                 </div>
             </div>
         </div>
+    </div>       
+
+    <!-- OTP Modal -->
+    <div class="modal fade" id="otpModal" tabindex="-1" role="dialog" aria-labelledby="otpModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="otpModalLabel">OTP Verification</h5>
+                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" id="otpTextBox" placeholder="Enter OTP">
+                    <p id="otpError" style="color: red;"></p>
+                    <button id="sendOtpButton" class="btn btn-primary">Send OTP</button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="verifyOtpButton">Verify OTP</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for success payment -->
+    <div class="modal" tabindex="-1" id="successModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Payment Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Payment successful</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+            </div>
+        </div>
+    </div>
 
     
 
@@ -210,11 +230,28 @@
                 });
             });
 
-
             // Send OTP
             $('#payButton').click(function(event) {
                 event.preventDefault();
-                $('#confirmModal').modal('show');
+
+                // Check if the user has entered the student ID
+                var studentId = $('#id').val();
+                if (studentId === '') {
+                    alert('Please enter the student ID');
+                    return;
+                }
+                else{
+                    // Check balance of payer
+                    var balance = $('#balance').val();
+                    var tuitionFee = $('#tuitionFee').val();
+                    if (parseInt(balance) < parseInt(tuitionFee)) {
+                        alert('You do not have enough balance to pay the tuition fee');
+                        return;
+                    }
+                    else{
+                        $('#confirmModal').modal('show');
+                    }
+                }
             });
 
             $('#confirmPayButton').click(function() {
@@ -244,7 +281,10 @@
                         to_email: to_email,  
                     }),
                     success: function(response) {
-                        localStorage.setItem('otp', response.otp);
+                        localStorage.setItem('otp', JSON.stringify({
+                            otp: response.otp.toString(),
+                            timestamp: new Date().getTime()
+                        }));
                     },
                     error: function(error) {
                         console.log(error);
@@ -260,20 +300,61 @@
             });
 
             // Verify OTP
-            $('#verifyOtpButton').click(function() {
+            $('#verifyOtpButton').click(function(event) {
                 // Get the OTP entered by the user
+                event.preventDefault();
                 var enteredOtp = $('#otpTextBox').val();
 
                 // Get the OTP from localStorage
-                var storedOtp = localStorage.getItem('otp');
+                var storedData = JSON.parse(localStorage.getItem('otp'));
+                var storedOtp = storedData.otp;
+                var storedTimestamp = storedData.timestamp;
+
+                var timeDifference = new Date().getTime() - storedTimestamp;
+                var minutes=10
+                var timeLimit = minutes * 60 * 1000;
 
                 // Compare the OTPs
-                if (enteredOtp === storedOtp) {
-                    console.log('OTP verification successful');
+                if (enteredOtp === storedOtp && timeDifference <= timeLimit) {
+                    $('#otpError').text('');
+                    console.log(timeLimit/1000);
+
+                    // Make payment
+                    var payee_id = $('#id').val();
+
+                    $.ajax({
+                        // url: 'http://localhost:8000/api/users/myself',
+                        url: 'http://localhost:8001/api/latest_tuition_fees/' + payee_id,
+                        method: 'POST',
+                        headers: {
+                            'Authorization': 'Bearer ' + localStorage.getItem('access_token')  // Include the JWT token in the request
+                        },
+                        success: function(data) {
+                            console.log(data);
+                            alert('Payment successful');
+                            $('#successModal').modal('show');
+                        },
+                        error: function() {
+                            alert('Payment failed');
+                        }
+                    });
+
+
                 } else {
-                    console.log('OTP verification failed');
+                    $('#otpError').text('OTP is not correct');
                 }
             });
+
+            // Redirect to payment.html after closing the success modal
+            $('#successModal').on('hidden.bs.modal', function (e) {
+                window.location.href = 'payment.html'; 
+            })
+
+            // Clear the OTP field after closing the OTP modal
+            $('#otpModal').on('hidden.bs.modal', function (e) {
+                $('#otpError').text('');  // Clear the error message
+                $('#otpTextBox').val('');
+            })
 
 
             
