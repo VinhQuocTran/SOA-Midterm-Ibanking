@@ -97,3 +97,31 @@ def pay_tuition_fee(payee_id):
         session.close()
 
 
+
+@tuition_payment_blueprint.route('/api/send_otp', methods=['POST']) 
+@jwt_required()
+def otp_6_digit():
+    # Get data from request
+    data = request.get_json()
+    from_email = data.get('from_email')
+    from_email_app_password = data.get('from_email_app_password')
+    to_email = data.get('to_email')
+
+    # Set up the SMTP server
+    s = smtplib.SMTP(host='smtp.gmail.com', port=587)
+    s.starttls()
+    s.login(from_email, from_email_app_password)  # replace with your email and password
+
+    # Create the message
+    # Generate a random 6-digit OTP
+    otp = random.randint(100000, 999999)
+    msg = MIMEText("Your OTP is: " + str(otp))
+    msg['From'] = from_email  
+    msg['To'] = to_email
+    msg['Subject'] = "Your Ibanking OTP"
+
+    # Send the message
+    s.send_message(msg)
+    s.quit()
+
+    return {"message": "OTP sent successfully", "otp": str(otp)}, 200

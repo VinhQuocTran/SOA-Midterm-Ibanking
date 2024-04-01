@@ -60,6 +60,9 @@ def get_user(student_id):
         return jsonify(username=user.name), 200
     else:
         return jsonify(msg='User not found'), 404
+    
+
+
 
 
 @student_blueprint.route('/api/get_tuition_fee', methods=['GET'])
