@@ -12,7 +12,7 @@ def create_app():
     app = Flask(__name__)
 
     # Enable CORS
-    CORS(app, origins=['http://127.0.0.1:5500','http://localhost:8001'])
+    CORS(app, origins=['http://127.0.0.1:5500','http://localhost:8000'])
     
     db_dir = os.path.join(os.path.dirname(__file__), 'database')
     db_path = os.path.join(db_dir, 'tuition_payment.db')

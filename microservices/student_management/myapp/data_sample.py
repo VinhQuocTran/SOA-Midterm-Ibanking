@@ -28,8 +28,8 @@ except OperationalError as e:
 print('\n\n\n')
 
 # Create students
-student1 = Student(name='Student 1', password='password1', balance=1000)
-student2 = Student(name='Student 2', password='password2', balance=1000)
+student1 = Student(name='Student 1', password='password1', balance=3000, email='student1@example.com', phone='1234567890')
+student2 = Student(name='Student 2', password='password2', balance=1000, email='student2@example.com', phone='0987654321')
 
 session.add(student1)
 session.add(student2)
@@ -46,12 +46,14 @@ session.commit()
 print('Semesters created')
 
 # Create installments
-installment1 = TuitionFeeSemesterInstallment(name='Spring-2024-Installment', start_date=datetime(2024, 3, 20), end_date=datetime(2024, 3, 20) + timedelta(weeks=3), semester_id=semester1.id)
-installment2 = TuitionFeeSemesterInstallment(name='Winter-2023-Installment', start_date=datetime(2023, 11, 20), end_date=datetime(2023, 11, 20) + timedelta(weeks=3), semester_id=semester2.id)
+installment1 = TuitionFeeSemesterInstallment(name='Spring-2024-Installment-phase-1', start_date=datetime(2024, 3, 20), end_date=datetime(2024, 3, 30), semester_id=semester1.id)
+installment2 = TuitionFeeSemesterInstallment(name='Spring-2024-Installment-phase-2', start_date=datetime(2024, 4, 1), end_date=datetime(2024, 4, 1) + timedelta(weeks=3), semester_id=semester1.id)
+installment3 = TuitionFeeSemesterInstallment(name='Winter-2023-Installment-phase-1', start_date=datetime(2023, 11, 20), end_date=datetime(2023, 11, 20) + timedelta(weeks=3), semester_id=semester2.id)
 
 # Add and commit the new installments
 session.add(installment1)
 session.add(installment2)
+session.add(installment3)
 session.commit()
 print('Semester installment created')
 

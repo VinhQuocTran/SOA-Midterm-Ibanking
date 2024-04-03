@@ -10,6 +10,21 @@ student_blueprint = Blueprint('student', __name__)
 
 @student_blueprint.route('/api/login', methods=['POST'])
 def login():
+    """
+    API endpoint for student login.
+
+    Input:
+    - studentId: The ID of the student trying to log in.
+    - password: The password of the student.
+
+    Output:
+    - If successful, returns a JSON object with an access token and the student's ID.
+    - If unsuccessful, returns a JSON object with an error message.
+
+    Description:
+    This endpoint is used for student login. It checks if the provided studentId and password match a record in the database.
+    If they do, it generates and returns an access token. If they don't, it returns an error message.
+    """
     data = request.json
     student_id = data.get('studentId')
     password = data.get('password')
@@ -26,11 +41,26 @@ def login():
 @student_blueprint.route('/api/users/myself', methods=['GET'])
 @jwt_required()
 def get_logged_in_user():
+    """
+    API endpoint to get the details of the logged-in user.
+
+    Input:
+    - Requires a valid JWT token in the Authorization header.
+
+    Output:
+    - If successful, returns a JSON object with the username, balance, email, and phone of the user.
+    - If unsuccessful (e.g., if the user is not found), returns a JSON object with an error message.
+
+    Description:
+    This endpoint is used to get the details of the currently logged-in user. It uses the JWT token provided in the 
+    Authorization header to identify the user. If a user with the ID encoded in the JWT token is found, their details are 
+    returned. If no such user is found, an error message is returned.
+    """
     student_id = get_jwt_identity()
     user = Student.query.filter_by(id=student_id).first()
 
     if user:
-        return jsonify(username=user.name,balance=user.balance), 200
+        return jsonify(username=user.name,balance=user.balance,email=user.email,phone=user.phone), 200
     else:
         return jsonify(msg='User not found'), 404
     
@@ -38,6 +68,20 @@ def get_logged_in_user():
 @student_blueprint.route('/api/users/myself', methods=['POST'])
 @jwt_required()
 def update_logged_in_user_balance():
+    """
+    API endpoint to update the balance of the logged-in user.
+
+    Input:
+    - Requires a valid JWT token in the Authorization header.
+    - Requires a JSON object in the request body with a 'balance' field.
+
+    Output:
+    - If successful, returns a JSON object with a success message.
+    - If unsuccessful (e.g., if no balance is provided in the request), returns a JSON object with an error message.
+
+    Description:
+    Updates the balance of the logged-in user.
+    """
     student_id = get_jwt_identity()
     user = Student.query.filter_by(id=student_id).first()
 
@@ -54,6 +98,20 @@ def update_logged_in_user_balance():
 @student_blueprint.route('/api/users/<int:student_id>', methods=['GET'])
 @jwt_required()
 def get_user(student_id):
+    """
+    API endpoint to get the details of a specific user.
+
+    Input:
+    - Requires a valid JWT token in the Authorization header.
+    - Requires a student_id in the URL.
+
+    Output:
+    - If successful, returns a JSON object with the username of the user.
+    - If unsuccessful (e.g., if the user is not found), returns a JSON object with an error message.
+
+    Description:
+    Retrieves the details of a specific user.
+    """
     user = Student.query.filter_by(id=student_id).first() 
 
     if user:
@@ -62,11 +120,21 @@ def get_user(student_id):
         return jsonify(msg='User not found'), 404
     
 
-
-
-
 @student_blueprint.route('/api/get_tuition_fee', methods=['GET'])
 def get_tutition_fee():
+    """
+    API endpoint to get the tuition fee details for a specific semester.
+
+    Input:
+    - Requires a 'semester_id' in the query parameters.
+
+    Output:
+    - If successful, returns a JSON object with the tuition fee details of all students for the specified semester.
+    - If unsuccessful (e.g., if the semester is not found), returns a JSON object with an error message.
+
+    Description:
+    Retrieves the tuition fee details for a specific semester.
+    """
     query = """
         SELECT 
             s.id AS student_id, 

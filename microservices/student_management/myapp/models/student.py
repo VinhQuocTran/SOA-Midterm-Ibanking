@@ -8,6 +8,8 @@ class Student(db.Model):
     __tablename__ = 'student'
     id = db.Column(Integer, primary_key=True)
     name = db.Column(String(64), nullable=False)
+    email = db.Column(String(64), nullable=False)
+    phone = db.Column(String(15), nullable=False)
     password = db.Column(String(64), nullable=False)
     balance = db.Column(Integer, nullable=False)
 
