@@ -139,6 +139,7 @@ def get_tutition_fee():
         SELECT 
             s.id AS student_id, 
             sem.id AS semester_id, 
+            sem.name AS semester_name,
             tf.start_date,
             tf.end_date,
             SUM(cis.fee) AS total_fee

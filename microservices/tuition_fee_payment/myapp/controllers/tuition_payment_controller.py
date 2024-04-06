@@ -9,6 +9,7 @@ from myapp.models.tuition_fee import *
 
 
 import smtplib
+import os
 from email.mime.text import MIMEText
 import random
 
@@ -47,12 +48,12 @@ def update_tuition_fee():
     data=response.json()
 
     values = ', '.join([
-        f"({int(record['student_id'])}, {int(record['semester_id'])}, {record['total_fee']}, '{record['start_date']}', '{record['end_date']}', '{datetime.utcnow()}', '{datetime.utcnow()}')"
+        f"({int(record['student_id'])}, {int(record['semester_id'])}, '{record['semester_name']}',{record['total_fee']}, '{record['start_date']}', '{record['end_date']}', '{datetime.utcnow()}', '{datetime.utcnow()}')"
         for record in data
     ])
 
     sql = text(f"""
-        INSERT INTO tuition_fee_in_semester (student_id, semester_id, total_fee, start_date, end_date, created_time, update_time)
+        INSERT INTO tuition_fee_in_semester (student_id, semester_id, semester_name, total_fee, start_date, end_date, created_time, update_time)
         VALUES {values}
         ON CONFLICT (student_id, semester_id)
         DO UPDATE SET total_fee = EXCLUDED.total_fee, start_date = EXCLUDED.start_date, end_date = EXCLUDED.end_date, update_time = EXCLUDED.update_time
@@ -82,18 +83,18 @@ def get_latest_tuition_fee(student_id):
     Description:
     Retrieves the latest tuition fee for a specific student.
     """
-    tuition_fee = db.session.query(TuitionFeeInSemester.total_fee).filter_by(student_id=student_id, payer_id=None).order_by(desc(TuitionFeeInSemester.start_date)).first()
+    tuition_fee = db.session.query(TuitionFeeInSemester).filter_by(student_id=student_id, payer_id=None).order_by(desc(TuitionFeeInSemester.start_date)).first()
 
     if tuition_fee is None:
         return jsonify({'error': 'No tuition fee found for this student'}), 404
 
     return jsonify({'total_fee': tuition_fee.total_fee}), 200
 
-@tuition_payment_blueprint.route('/api/latest_tuition_fees/myself', methods=['GET'])
+@tuition_payment_blueprint.route('/api/paid_tuition_fees/myself', methods=['GET'])
 @jwt_required()
-def get_tuition_fees():
+def get_paid_tuition_fees():
     """
-    API endpoint to get the latest tuition fee for the current user.
+    API endpoint to get the paid tuition fee for the current user.
 
     Input:
     - Requires a valid JWT token in the Authorization header.
@@ -114,6 +115,7 @@ def get_tuition_fees():
             'payee_id': fee.student_id,
             'payer_id': fee.payer_id,
             'semester_id': fee.semester_id,
+            'semester_name': fee.semester_name,
             'total_fee': fee.total_fee,
             'pay_time': fee.pay_time.isoformat() if fee.pay_time else None,
         }
@@ -144,10 +146,10 @@ def pay_tuition_fee(payee_id):
     """
 
     payer_id=get_jwt_identity()
-    session = db.session()
+    # session = db.session()
 
     # Get the latest tuition fee
-    tuition_fee = session.query(TuitionFeeInSemester.total_fee).filter_by(student_id=payee_id, payer_id=None).order_by(desc(TuitionFeeInSemester.start_date)).first()
+    tuition_fee = db.session.query(TuitionFeeInSemester.total_fee).filter_by(student_id=payee_id, payer_id=None).order_by(desc(TuitionFeeInSemester.start_date)).first()
     if tuition_fee is None:
         return jsonify({'error': 'No tuition fee found for this student'}), 404
     
@@ -167,18 +169,17 @@ def pay_tuition_fee(payee_id):
             return jsonify({'error': 'Failed to update payer balance'}), 500
         
         # Update the tuition fee
-        session.query(TuitionFeeInSemester).filter_by(student_id=payee_id, payer_id=None).update({'payer_id': payer_id,'pay_time': datetime.utcnow()})
+        db.session.query(TuitionFeeInSemester).filter_by(student_id=payee_id, payer_id=None).update({'payer_id': payer_id,'pay_time': datetime.utcnow()})
 
-        session.commit()
+        db.session.commit()
 
         return jsonify({'msg': 'Tuition fee paid'}), 200
 
     except SQLAlchemyError as e:
         response = requests.post(f"http://localhost:8000/api/users/myself", headers={'Authorization':access_token}, json={'balance': payer_balance + tuition_fee.total_fee})
-        session.rollback()
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
-    finally:
-        session.close()
+
 
 
 
@@ -203,8 +204,8 @@ def otp_6_digit():
 
     # Get data from request
     data = request.get_json()
-    from_email = data.get('from_email')
-    from_email_app_password = data.get('from_email_app_password')
+    from_email = os.getenv('SERVER_SIDE_EMAIL')
+    from_email_app_password = os.getenv('SERVER_SIDE_EMAI_APP_PASSWORD')
     to_email = data.get('to_email')
 
     # Set up the SMTP server
@@ -225,3 +226,38 @@ def otp_6_digit():
     s.quit()
 
     return {"message": "OTP sent successfully", "otp": str(otp)}, 200
+
+
+    
+    
+@tuition_payment_blueprint.route('/api/send_success_email', methods=['POST']) 
+@jwt_required()
+def send_success_email():
+    from_email = os.getenv('SERVER_SIDE_EMAIL')
+    from_email_app_password = os.getenv('SERVER_SIDE_EMAI_APP_PASSWORD')
+    data = request.get_json()
+    to_email = data.get('to_email')
+
+     # Set up the SMTP server
+    s = smtplib.SMTP(host='smtp.gmail.com', port=587)
+    s.starttls()
+    s.login(from_email, from_email_app_password)
+
+    # Create the message
+    date=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    msg = MIMEText("Your payment was successful! at "+date+" Thank you for using our service.")
+    msg['From'] = from_email
+    msg['To'] = to_email
+    msg['Subject'] = "Payment Successful"
+
+    # Send the message
+    s.send_message(msg)
+    s.quit()
+
+    return {"message": "send success email successfully"}, 200
+
+
+@tuition_payment_blueprint.route('/api/test', methods=['GET']) 
+@jwt_required()
+def test():
+    return {"message": "test successfully"}, 200

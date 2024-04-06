@@ -49,6 +49,7 @@
                 <th scope="col">Payee ID</th>
                 <th scope="col">Payer ID</th>
                 <th scope="col">Semester ID</th>
+                <th scope="col">Semester Name</th>
                 <th scope="col">Total Fee</th>
                 <th scope="col">Pay Time</th>
             </tr>
@@ -76,7 +77,7 @@
 
             // Get payment history
             // Fetch data from the API
-            fetch('http://localhost:8001/api/latest_tuition_fees/myself', {
+            fetch('http://127.0.0.1:8001/api/paid_tuition_fees/myself', {
             method: 'GET',
             headers: {
                 'Authorization': 'Bearer ' + localStorage.getItem('access_token'),  // replace 'token' with your actual token
@@ -93,7 +94,7 @@
                         const row = document.createElement('tr');
 
                         // Create cells for the row
-                        ['payee_id', 'payer_id', 'semester_id', 'total_fee', 'pay_time'].forEach(key => {
+                        ['payee_id', 'payer_id', 'semester_id', 'semester_name','total_fee', 'pay_time'].forEach(key => {
                             const cell = document.createElement('td');
                             if (key === 'pay_time') {
                                 // Format pay_time up to the minute

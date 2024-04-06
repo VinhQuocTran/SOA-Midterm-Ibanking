@@ -11,8 +11,8 @@ from flask_cors import CORS
 def create_app():
     app = Flask(__name__)
 
-    # Enable CORS
-    CORS(app, origins=['http://127.0.0.1:5500','http://localhost:8001'])
+    # Enable CORS   
+    CORS(app, origins=['http://127.0.0.1:5500','http://127.0.0.1:8001'])
     
     # Configure SQLAlchemy
     db_dir = os.path.join(os.path.dirname(__file__), 'database')
