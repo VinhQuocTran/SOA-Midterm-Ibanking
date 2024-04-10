@@ -85,6 +85,10 @@
                     <label for="tuitionFee">Tuition Fee</label>
                     <input type="number" id="tuitionFee" class="form-control" placeholder="Tuition Fee" disabled>
                 </div>
+                <div class="form-group">
+                    <label for="tuitionName">Tuition Name</label>
+                    <input type="text" id="tuitionName" class="form-control" placeholder="Tuition Name" disabled>
+                </div>
                 <br>
                 <br>
             </fieldset>
@@ -216,14 +220,14 @@
 
             // Get user information
             $.ajax({
-                url: 'http://127.0.0.1:8000/api/users/myself',
+                url: 'http://127.0.0.1:8001/api/accounts/myself',
                 method: 'GET',
                 headers: {
                     'Authorization': 'Bearer ' + localStorage.getItem('access_token')  // Include the JWT token in the request
                 },
                 success: function(data) {
                     // Populate the page with the returned data
-                $('#name').val(data.username);
+                    $('#name').val(data.username);
                     $('#email').val(data.email);
                     $('#phone').val(data.phone);
                     $('#greeting').text('Hello ' + data.username + '!');
@@ -244,23 +248,26 @@
                 $('#studentName').val('');
                 $('#tuitionFee').val('');
                 $('#tuitionFeeBalance').val('');
+                $('#tuitionName').val('');
+                
             }
             
+            // Get student information by id
             $('#id').focusout(function() {
             var studentId = $(this).val();
 
             $.ajax({
-                url: 'http://127.0.0.1:8000/api/users/' + studentId,
+                url: 'http://127.0.0.1:8000/api/students/' + studentId,
                 method: 'GET',
                 headers: {
                     'Authorization': 'Bearer ' + localStorage.getItem('access_token')  // Include the JWT token in the request
                 },
                 success: function(data) {
                     // Populate the form fields with the returned data
-                    $('#studentName').val(data.username);
+                    $('#studentName').val(data.name);
 
                     $.ajax({
-                        url: 'http://127.0.0.1:8001/api/latest_tuition_fees/' + studentId,
+                        url: 'http://127.0.0.1:8000/api/tuition_fees/' + studentId+"?earliest_unpaid=true",
                         method: 'GET',
                         headers: {
                             'Authorization': 'Bearer ' + localStorage.getItem('access_token')  // Include the JWT token in the request
@@ -268,6 +275,7 @@
                         success: function(data) {
                             // Populate the tuition fee field with the returned data
                             $('#tuitionFee').val(data.total_fee);
+                            $('#tuitionName').val(data.semester_name);
                             $('#tuitionFeeBalance').val(data.total_fee);
                         },
                         error: function() {
@@ -310,7 +318,38 @@
 
             $('#confirmPayButton').click(function() {
                 $('#confirmModal').modal('hide');
+
+                var to_email = 'vinhquoc2103@gmail.com';
+                // Disable the button
+                $("#sendOtpButton").prop('disabled', true);
+                $("#sendOtpButton").text('Please wait and check your Email');
+
+                $.ajax({
+                    url: 'http://127.0.0.1:8001/api/send_otp',
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token'),
+                        'Content-Type': 'application/json',
+                    },
+                    data: JSON.stringify({
+                        to_email: to_email
+                    }),
+                    success: function(response) {
+                        localStorage.setItem('otp', JSON.stringify({
+                            otp: response.otp.toString(),
+                            timestamp: new Date().getTime(),
+                            payment_type: 'tuition_fee'
+                        }));
+                    }
+                });
+
                 $('#otpModal').modal('show');
+
+                // Enable the button after 10 seconds
+                setTimeout(function() {
+                    $('#sendOtpButton').prop('disabled', false);
+                    $('#sendOtpButton').text('Click to send OTP again');
+                }, 10000);
             });
 
             $('#sendOtpButton').click(function() {
@@ -333,7 +372,8 @@
                     success: function(response) {
                         localStorage.setItem('otp', JSON.stringify({
                             otp: response.otp.toString(),
-                            timestamp: new Date().getTime()
+                            timestamp: new Date().getTime(),
+                            payment_type: 'tuition_fee'
                         }));
                     },
                     error: function(error) {
@@ -351,71 +391,69 @@
 
             // Verify OTP
             $('#verifyOtpButton').click(function(event) {
+                // update status of button
+                $(this).text('Verifying and Processing... Please wait').prop('disabled', true);;
+
+
                 // Get the OTP entered by the user
                 event.preventDefault();
                 var payee_id = $('#id').val();
                 var enteredOtp = $('#otpTextBox').val();
-                var storedData = JSON.parse(localStorage.getItem('otp'));
-                var storedOtp = storedData.otp;
-                var storedTimestamp = storedData.timestamp;
+                var otp_info = JSON.parse(localStorage.getItem('otp'));
+                if(otp_info == null){
+                    $('#otpError').text('OTP is not correct');
+                    $(this).text('Verify OTP').prop('disabled', false);
+                    return;
+                }
                 var to_email = 'vinhquoc2103@gmail.com';
 
-                var timeDifference = new Date().getTime() - storedTimestamp;
+                var timeDifference = new Date().getTime() - otp_info.timestamp;
                 var minutes=10
                 var timeLimit = minutes * 60 * 1000;
 
-                // Compare the OTPs
-                if (enteredOtp === storedOtp && timeDifference <= timeLimit) {
-                    $('#otpError').text('');
+                console.log(otp_info);
 
+                // Compare the OTPs
+                if (enteredOtp === otp_info.otp && timeDifference <= timeLimit && otp_info.payment_type === 'tuition_fee') 
+                {
+                    $('#otpError').text('');
                     // Make payment
                     var payee_id = $('#id').val();
+                    console.log(payee_id);
 
                     $.ajax({
-                        url: 'http://127.0.0.1:8001/api/latest_tuition_fees/' + payee_id,
+                        url: 'http://127.0.0.1:8001/api/tuition_fee_transaction',
                         async: true,
                         method: 'POST',
                         headers: {
                             'Authorization': 'Bearer ' + localStorage.getItem('access_token')  // Include the JWT token in the request
                         },
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            student_id: payee_id
+                        }),
                         success: function(data) {
+                            alert('Payment successful');
                             $('#successModal').modal('show');
-                             // Call the send_success_email endpoint
-                            $.ajax({
-                                url: 'http://127.0.0.1:8001/api/send_success_email',
-                                async: true,
-                                method: 'POST',
-                                headers: {
-                                    'Authorization': 'Bearer ' + localStorage.getItem('access_token'),
-                                    'Content-Type': 'application/json'  // Include the JWT token in the request
-                                },
-                                data: JSON.stringify({
-                                    'to_email': to_email  // Replace with the recipient's email
-                                }),
-                                success: function(data) {
-                                    console.log('Email sent successfully');
-                                },
-                                error: function() {
-                                    console.log('Failed to send email');
-                                }
-                            });
                         },
                         error: function() {
                             alert('Payment failed');
+                            $(this).text('Verify OTP').prop('disabled', false);
                             // window.location.href = 'payment.html';
                         }
                     });
-
-
-                } else {
+                } 
+                else 
+                {
                     $('#otpError').text('OTP is not correct');
+                    $(this).text('Verify OTP').prop('disabled', false);
                 }
             });
 
             // Redirect to payment.html after closing the success modal
-            $('#successModal').on('hidden.bs.modal', function (e) {
-                window.location.href = 'payment.html'; 
-            })
+            // $('#successModal').on('hidden.bs.modal', function (e) {
+            //     window.location.href = 'payment.html'; 
+            // })
 
             // Clear the OTP field after closing the OTP modal
             $('#otpModal').on('hidden.bs.modal', function (e) {

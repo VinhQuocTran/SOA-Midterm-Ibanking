@@ -9,11 +9,11 @@
 </head>
 <body>
     <div class="container">
-        <h1 class="text-center">Login</h1>
+        <h1 class="text-center">Ibanking Service Login</h1>
         <form id="loginForm">
             <div class="mb-3">
-                <label for="studentId" class="form-label">Student ID:</label>
-                <input type="text" class="form-control" id="studentId" name="studentId" required>
+                <label for="username" class="form-label">Username:</label>
+                <input type="text" class="form-control" id="username" name="username" required>
             </div>
 
             <div class="mb-3">
@@ -31,17 +31,17 @@
         document.getElementById('loginForm').addEventListener('submit', async function(event) {
             event.preventDefault(); // Prevent form submission
             
-            const studentId = document.getElementById('studentId').value;
+            const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
 
             // Make POST request to login endpoint
-            const response = await fetch('http://127.0.0.1:8000/api/login', {
+            const response = await fetch('http://127.0.0.1:8001/api/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    studentId: studentId,
+                    username: username,
                     password: password
                 })
             });
@@ -51,14 +51,15 @@
             
             if (response.ok) {
                 // Login successful, store JWT token in local storage
+                localStorage.clear();
                 localStorage.setItem('access_token', data.access_token);
-                localStorage.setItem('login_student_id', data.student_id);
+                localStorage.setItem('username', data.username);
                 alert('Login successful!');
                 // Redirect to another page if needed
                 window.location.href = 'payment.html';
             } else {
                 // Login failed, display error message
-                alert(data.msg);
+                alert(data.error);
             }
         });
     </script>

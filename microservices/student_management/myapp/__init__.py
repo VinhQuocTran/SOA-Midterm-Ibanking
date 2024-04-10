@@ -5,11 +5,13 @@ import os
 
 # Custom modules
 from .models.student import db
-from .controllers.student_controller import student_blueprint
+from .controllers.student_controller import *
+from flasgger import Swagger
 from flask_cors import CORS
 
 def create_app():
     app = Flask(__name__)
+    swagger = Swagger(app)
 
     # Enable CORS   
     CORS(app, origins=['http://127.0.0.1:5500','http://127.0.0.1:8001'])
@@ -36,5 +38,7 @@ def create_app():
         
     # Register blueprints
     app.register_blueprint(student_blueprint)
+
+    
 
     return app

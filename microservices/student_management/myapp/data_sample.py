@@ -28,8 +28,8 @@ except OperationalError as e:
 print('\n\n\n')
 
 # Create students
-student1 = Student(name='Student 1', password='password1', balance=3000, email='student1@example.com', phone='1234567890')
-student2 = Student(name='Student 2', password='password2', balance=1000, email='student2@example.com', phone='0987654321')
+student1 = Student(name='Student 1')
+student2 = Student(name='Student 2')
 
 session.add(student1)
 session.add(student2)

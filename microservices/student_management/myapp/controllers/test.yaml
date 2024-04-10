@@ -1,0 +1,14 @@
+get:
+  tags:
+    - Test
+  summary: Test endpoint
+  responses:
+    '200':
+      description: A message saying "Hello, World!"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              msg:
+                type: string
